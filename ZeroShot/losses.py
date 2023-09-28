@@ -377,40 +377,6 @@ class CE_KL_PWKL_loss(nn.Module):
         rttensor[0], rttensor[1], rttensor[2] = loss, surrogate_loss1, surrogate_loss2
         return rttensor
 
-
-class pair_wise_CE(nn.Module):
-    def __init__(self,):
-        super(pair_wise_CE, self).__init__()
-    def forward(self, output, labels):
-        rtval = 0 
-        labels = labels[:, None]  # extend dim
-        device = output.device
-        output = F.softmax(output, dim=1)
-        mask = torch.eq(labels, labels.t()).bool().to(device)
-        mask_neg = (~mask).float()
-        # breakpoint()
-        LogOutput = torch.nan_to_num(torch.log(torch.clamp(output, EPS, INF)),0)
-        CrossEntropy = -torch.matmul(output, LogOutput.t().detach())
-        pair_wise_CE = (mask_neg*CrossEntropy).reshape(-1)
-        rtval = torch.mean(pair_wise_CE[pair_wise_CE!=0])
-        return rtval
-
-class pair_wise_CE_W_Anchor(nn.Module):
-    def __init__(self,n_classes):
-        super(pair_wise_CE_W_Anchor, self).__init__()
-        self.n_classes = n_classes
-    def forward(self, output, labels, anchor):
-        # breakpoint()
-        device = output.device
-        rtval = 0
-        output = F.softmax(output, dim=1)
-        # breakpoint()
-        Loganchor = torch.nan_to_num(torch.log(torch.clamp(anchor, EPS, INF)),0)
-        OneHotMask = 1-F.one_hot(labels, self.n_classes).to(device)
-        pair_wise_CE_W_Anchor = -(OneHotMask*torch.matmul(output, Loganchor.t())).reshape(-1)
-        rtval = torch.mean(pair_wise_CE_W_Anchor[pair_wise_CE_W_Anchor!=0])
-        return rtval
-    
 class CE_KL_PWCE_loss(nn.Module):
     def __init__(self, n_classes):
         super(CE_KL_PWCE_loss, self).__init__()
